@@ -1,0 +1,72 @@
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
+
+public class Base64MultipartFile implements MultipartFile {
+
+    private final byte[] content;
+    private final String name;
+    private final String originalFilename;
+    private final String contentType;
+
+    public Base64MultipartFile(String base64, String originalFilename) {
+        if (base64.contains(",")) {
+            base64 = base64.split(",")[1]; // Retire le préfixe data:...base64,
+        }
+        this.content = Base64.getDecoder().decode(base64);
+        this.originalFilename = originalFilename;
+        this.name = "file"; // nom du champ (arbitraire)
+        this.contentType = guessContentType(originalFilename);
+    }
+
+    private String guessContentType(String filename) {
+        if (filename.endsWith(".png")) return "image/png";
+        if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) return "image/jpeg";
+        if (filename.endsWith(".pdf")) return "application/pdf";
+        if (filename.endsWith(".txt")) return "text/plain";
+        return "application/octet-stream";
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public String getOriginalFilename() {
+        return originalFilename;
+    }
+
+    @Override
+    public String getContentType() {
+        return contentType;
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return content.length == 0;
+    }
+
+    @Override
+    public long getSize() {
+        return content.length;
+    }
+
+    @Override
+    public byte[] getBytes() {
+        return content;
+    }
+
+    @Override
+    public InputStream getInputStream() {
+        return new ByteArrayInputStream(content);
+    }
+
+    @Override
+    public void transferTo(java.io.File dest) throws IOException {
+        java.nio.file.Files.write(dest.toPath(), content);
+    }
+}
